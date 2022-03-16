@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize, Bounds, LinearConstraint
-
+import pickle
 
 np.set_printoptions(precision=2)
 import os
@@ -19,136 +19,31 @@ os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 import seaborn as sns
 import xlwings as xw
-#%%
-alltick="""
-AGG US Tbond aggregate 
-BND total bond
-BNDX total international bond
-BSV 단기 세계
-
-LQD 투자등급 회사채
-
-MBB  MBS 채권
-IGSB 1-5Y 투자등급 회사채
-
-
-VCIT 중기 회사채
-VCSH 단기 회사채
-
-
-HYG  high yield 회사채
-JNK  high yield 회사채
-SRLN  시니어 론 ETF 
-
-
-
-SHV  1M~1Y Tbond
-SHY  1~3Y Tbond  
-IEF  7~10Y Tbond
-TLT  19Y Tbond
-VGLT 18Y Tbond
-EDV  25Y Tbond
-
-SCHP 7.5Y TIPS
-VTIP 1~3Y 단기 TIPS
-TIP  7~10 중기 TIPS
-LTPZ   20+ 장기 TIPS
-
-UST  중기 2x
-TYD  중기 3x
-UBT  장기 2x
-TMF  장기 3x
-
-TBX  중기 -1x
-PST  중기 -2x
-
-TMV  장기 -3x
-
-TBF  장기 -1x
-TBT  장기 -2x
-TTT  장기 -3x
-
-SH   sp500 -1x
-SDS  sp500 -2x
-SPXU sp500  -3x
-SPXS  sp500 -3x #거래량 적음
-SPY
-SSO    2x
-SPXL    3x
-UPRO  3x
-
-UVXY  x1.5 vix 단기 
-TVIX   x2  ETN
-VIXY  vix 단기
-SIXY   -1x
-VIXM  중기 vix
-SVXY  vix 단기 -1x
-VXX   vix 단기  ETN 최초 상품
-VXZ  중기 vix ETN
-
-
-
-QQQ   1x
-PSQ  -1x
-QID  -2x
-
-SQQQ  -3x
-TQQQ  3x
-QLD x2
-
-QYLD  qqq커버드 콜
-
-
-GLD
-SLV
-
-SPY 
-EFA 
-EEM 
-QQQ
-DBC
-GLD 
-TLT 
-IWM 
-IYR
-
-EZU
-EWJ
-VNQ
-RWX
-IEF
-
-
-"""
-
-# aa= alltick.split('\n')
-# a_new=[]
-# for a in aa:
-#     if a.__len__()!=0:
-#         a_new.append(a.split()[0])
-        
-# df = yf.download(a_new,period='max')
-
-# df.to_pickle('alldata.dat')
 
 # "SHY IEF TLT EDV VTIP TIP LTPZ "
  # US equities (represented by SPY), European equities (EZU), Japanese equities (EWJ), emerging market equities (EEM), US REITs (VNQ), international REITs (RWX), US 10-year Treasuries (IEF), US 30-year Treasuries (TLT), commodities (DBC) and gold (GLD).
-"SPY EZU EWJ EEM VNQ RWX IEF TLT DBC GLD"
-'SPY EFA EEM QQQ DBC GLD TLT IWM IYR'
-# In[31]:
-#%% BASE CLASS
-#%% BASE CLASS
+# "SPY EZU EWJ EEM VNQ RWX IEF TLT DBC GLD"
+# 'SPY EFA EEM QQQ DBC GLD TLT IWM IYR'
+# 
+
 #%% BASE CLASS
 
 class portfolio():
-    def __init__(self):
+    def __init__(self,name):
         self.ticker=[]
         self.df=[]
+        self.name = name
+        self.dayinfo = []
+        
         self.MIN_START_IDX=20
         self.REBAL_MONTH=1
         self.workingday=252
-    
-    
+        
+        
+        self.save_list = ['ticker','name','df','dayinfo']
+        
+        
+        
     
     def setTicker(self,ticker):
         self.ticker= ticker
@@ -161,8 +56,8 @@ class portfolio():
         df= df['Adj Close']
         return df
 
-    def saveDf(self,df):
-        df.to_pickle('data.dat')
+    def saveDf(self):
+        self.df.to_pickle('data.dat')
     def loadDf(self,load_all=False):
         if load_all==True:
             try:
@@ -170,11 +65,9 @@ class portfolio():
                 return df
             except:
                 import pickle5
-                
                 with open('alldata.dat','rb') as ff:
                     df =pickle5.load(ff)
                     return df
-
         else:
             df=pd.read_pickle('data.dat')
             return df
@@ -227,8 +120,23 @@ class portfolio():
         dd= pd.concat(c_cagr,axis=1)
         dd.columns=str_month
         return  dd
-    
+    def setDayRange(self,df):
+        col = df.columns[0]
+        ll=[]
+        for col in df.columns:
+            dd= df[col].dropna()
+            if dd.__len__() <=0 :
+                continue
+            print("{} : {:%Y-%m-%d} ~ {:%Y-%m-%d}".format(dd.name, dd.index[0], dd.index[-1]))
+            ll.append([dd.name,dd.index[0],dd.index[-1]])
+        self.dayinfo =pd.DataFrame(ll,columns=['Ticker','start','end']).sort_values('start')
+    def printDayRange(self):
+        print(self.dayinfo)
+        
     def report(self):
+        print("{} : {:%Y-%m-%d} ~ {:%Y-%m-%d}".format(self.name, self.out_df.index[0], self.out_df.index[-1]))
+
+        
         d0=self.out_df[self.ticker+['P_ev']]
         rpt=[]
         rpt.append(self.calcAnnualMean(d0))
@@ -253,6 +161,8 @@ class portfolio():
     
     def initDf(self):
         assert self.df.__len__() != 0
+        
+        self.setDayRange(self.df[self.ticker])
         df=self.df[self.ticker]
         df=self.dropInvalid(df)
         df=self.setDayInfo(df)
@@ -278,7 +188,7 @@ class portfolio():
             cur_dd=self.df.iloc[idx]
             eval_stock = [self.pf[tt]*cur_dd[tt] for tt in self.ticker]
             self.pf['ev'] = sum(eval_stock)+self.pf['cash']
-            print(idx,self.pf['ev'])
+            # print(idx,self.pf['ev'])
             self.pf_list.append(self.pf.copy())
             if idx>self.MIN_START_IDX and cur_dd.m_index % self.REBAL_MONTH ==0 and cur_dd.m_end == True:
                 """---------------custom rebal start---------------"""
@@ -290,10 +200,27 @@ class portfolio():
         pfl.columns= "P_"+pfl.columns
         pfl.index = self.df[:pfl.__len__()].index
         self.out_df=pd.concat([self.df,pfl],axis=1)
-       
-pf = portfolio()
-pf.setTicker('SPY TLT'.split())
+    def saveTestPf(self):
+        save= [self.__getattribute__(item) for item in self.save_list]
+        with open(self.name+'.dat','wb') as f:
+            pickle.dump(save,f)
 
+    def loadTestPf(self):
+        with open(self.name+'.dat','rb') as f:
+            load = pickle.load(f)
+        for ii,item in enumerate(self.save_list):
+            self.__setattr__(item, load[ii])
+            
+         
+                
+            
+pf = portfolio('SPYTLT6040')
+pf.setTicker('SPY TLT'.split())
+# pf.printDayRange()
+pf.test_pf()
+pf.saveTestPf()
+# pf.loadTestPf()
+# pf.report()
 
 #%%  equal weight
 
@@ -319,8 +246,8 @@ class pf_AAA(portfolio):
         return optimal_weights['x']
 
     
-    def __init__(self):
-        super().__init__()
+    def __init__(self,name):
+        super().__init__(name)
         pass
     
     def custom_init(self):
@@ -349,39 +276,30 @@ class pf_AAA(portfolio):
         self.bal[asset.index.tolist()]=tar_w
         pass
     
-pf2= pf_AAA()
+pf2= pf_AAA('AAA_minvol')
 pf2.setTicker('SPY EFA EEM QQQ DBC GLD TLT IWM IYR'.split())
-#pf2.test_pf()
-#pf2.report()
+# pf2.test_pf()
+# pf2.saveTestPf()
+# pf2.loadTestPf()
+pf2.report()
 
+# pf2.initPf()
+# pf2.printDayRange()
 
 # In[16]:
+
+pf3= pf_AAA('AAA_test0')
+pf3.setTicker('ES=F NQ=F ZB=F ZN=F ZF=F GC=F SI=F HG=F CL=F'.split())
+# pf3.test_pf()
+# pf3.saveTestPf()
+pf3.report()
 
 
 
 #%%
-df = pd.read_pickle('alldata.dat')['Adj Close']
 
-aa = df[['SPY','QQQ','UPRO','TLT','TMF']]
-
-logr= np.log(1+aa.pct_change())
-# logr.plot.hist()
-ret=logr.mean()*252
-std=logr.std()*252**0.5
-norm_aa =  aa/aa.iloc[0]
-
-norm_aa.rolling(22).mean().plot()
-
-logr.rolling(22).mean().plot()
-logr.rolling(6*22).mean().plot()
-logr.rolling(1*22).std().plot()
-
-aa.cov()
-
-logr.cov()*252
-
-a0 = aa[['SPY','TLT']].dropna()
-a0.plot()
-
-a1 = np.log(1+a0.pct_change())
-sns.pairplot(logr)
+pf4= pf_AAA('AAA_test1')
+pf3.setTicker('UPRO TMF TMV '.split())
+# pf3.test_pf()
+pf3.saveTestPf()
+pf3.report()
