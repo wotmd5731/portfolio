@@ -14,7 +14,7 @@ from dateutil.relativedelta import relativedelta
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize, Bounds, LinearConstraint
 
-
+import pickle
 np.set_printoptions(precision=2)
 import os
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
@@ -153,6 +153,8 @@ for a in aa:
         
 df = yf.download(a_new,period='max')
 
-df.to_pickle('alldata.dat')
+with open('alldata.dat','wb') as f:
+    pickle.dump(df,f)
 
-df = df['Adj Close']
+
+# df = df['Adj Close']

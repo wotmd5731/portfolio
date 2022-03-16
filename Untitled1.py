@@ -12,6 +12,7 @@ from dateutil.relativedelta import relativedelta
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize, Bounds, LinearConstraint
 import pickle
+# import pickle5
 
 np.set_printoptions(precision=2)
 import os
@@ -56,22 +57,20 @@ class portfolio():
         df= df['Adj Close']
         return df
 
-    def saveDf(self):
-        self.df.to_pickle('data.dat')
-    def loadDf(self,load_all=False):
-        if load_all==True:
-            try:
-                df = pd.read_pickle('alldata.dat')
-                return df
-            except:
-                import pickle5
-                with open('alldata.dat','rb') as ff:
-                    df =pickle5.load(ff)
-                    return df
-        else:
-            df=pd.read_pickle('data.dat')
-            return df
 
+    def saveDf(self):
+        
+        with open('data.dat','wb') as f:
+            pickle.dump(self.df,f)
+
+    def loadDf(self,alldata=False):
+        if alldata==True:
+            name='alldata.dat'
+        else:
+            name = 'data.dat'
+        with open(name,'rb') as f:
+            self.df = pickle.load(f)
+        return self.df
     
     def toExcel(self,df):
         wb = xw.books[0]
@@ -217,10 +216,10 @@ class portfolio():
 pf = portfolio('SPYTLT6040')
 pf.setTicker('SPY TLT'.split())
 # pf.printDayRange()
-pf.test_pf()
+# pf.test_pf()
 pf.saveTestPf()
 # pf.loadTestPf()
-# pf.report()
+pf.report()
 
 #%%  equal weight
 
@@ -285,6 +284,41 @@ pf2.report()
 
 # pf2.initPf()
 # pf2.printDayRange()
+
+#%%
+
+
+
+class pf_VAA_Agg(portfolio):
+
+    
+    def __init__(self,name):
+        super().__init__(name)
+        pass
+    
+    def custom_init(self):
+        self.mom_months = [1,3,6,12]
+        self.mom_gain = [12,4,2,1]
+        self.aggr_asset = ['SPY EFA EEM AGG'.split()]
+        self.defe_asset = ['LQD IEF SHY'.split()]
+        
+        pass
+    def custom_rebal(self,idx):
+        idx=40
+        
+        for i in self.mom_months:
+            self.df.iloc[idx].name - relativedelta(months=(1))
+        
+    
+pf3= pf_VAA_Agg('VAA_Agg')
+pf3.setTicker('SPY EFA EEM AGG LQD  IEF SHY'.split())
+pf3.initPf()
+# pf2.saveTestPf()
+# pf2.loadTestPf()
+pf3.report()
+
+# pf2.initPf()
+pf3.printDayRange()
 
 # In[16]:
 
