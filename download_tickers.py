@@ -140,6 +140,13 @@ GLL       2x
 AGQ   silver 2x
 ZSL        -2x
 
+SCZ
+VTI
+TLT
+IEI
+GLD
+GSG
+DBC
 
 
 
