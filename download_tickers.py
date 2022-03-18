@@ -159,9 +159,9 @@ for a in aa:
         a_new.append(a.split()[0])
         
 df = yf.download(a_new,period='max')
-
-with open('alldata.dat','wb') as f:
-    pickle.dump(df,f)
+df.to_csv('alldata.csv')
+#with open('alldata.dat','wb') as f:
+#    pickle.dump(df,f)
 
 
 # df = df['Adj Close']
