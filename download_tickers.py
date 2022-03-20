@@ -148,7 +148,8 @@ GLD
 GSG
 DBC
 
-
+VWO (개발도상국 주식), 
+BND (미국 총채권)
 
 """
 
@@ -159,7 +160,8 @@ for a in aa:
         a_new.append(a.split()[0])
         
 df = yf.download(a_new,period='max')
-df.to_csv('alldata.csv')
+df['Adj Close'].to_csv('alldata.csv')
+
 #with open('alldata.dat','wb') as f:
 #    pickle.dump(df,f)
 
