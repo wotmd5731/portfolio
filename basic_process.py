@@ -25,12 +25,148 @@ import xlwings as xw
 import pyqtgraph as pg
 # df = pd.read_pickle('alldata.dat')['Adj Close']
 df = pd.read_csv('alldata.csv').set_index('Date')
+d = ['VXX', 'VXZ']
+df = df.drop(columns=d)
+
+
+dd =df['GLD SPY TLT'.split()]
+dd = dd.dropna()
+#%%
+"""
+추세 추종 매매. 모멘텀, 이런 이론과 방법론으로 돈을 벌수 잇다는 것은.
+경제의 특수상황.
+경제 위기. 인플레이션.경제 회복. 등등등 
+다양한 상황에서  이러한  상태가 장기간 유지가 됨.
+
+코로나 같은 위기로 급락이 발생한 직후.
+2년에 걸쳐 장시간 증시가 계속 상승햇음. 
+동일하게 금 또한 상승햇음.
+위기가 오는 순간 채권이 상승햇음.
+
+경재의 순환 사이클이라고 해야되나.
+채권 상승 -> 주식 상승 ->경기상승-> 원자재 상승 -> 금리 인상 
+
+주요 자산
+주식, 채권, 원자재, TIPS
+
+"""
+
+
+
+df = yf.download('^VIX ^GSPC ^IXIC ^RUT CL=F GC=F ',period='max')
+df = yf.download('^FVX ^TNX ^TYX ^IRX',period='max')
+df = yf.download("ZN=F  ZT=F",period='max')
+
+#%%
+ddd = """
+EURUSD=X	EUR/USD	1.0987	-0.0015	-0.13%		
+JPY=X	USD/JPY	122.0600	-0.2600	-0.21%		
+GBPUSD=X	GBP/USD	1.3189	+0.0003	+0.02%		
+AUDUSD=X	AUD/USD	0.7516	+0.0004	+0.05%		
+NZDUSD=X	NZD/USD	0.6975	+0.0011	+0.15%		
+EURJPY=X	EUR/JPY	134.0400	-0.5000	-0.37%		
+GBPJPY=X	GBP/JPY	161.0120	-0.2650	-0.16%		
+EURGBP=X	EUR/GBP	0.8326	-0.0012	-0.14%		
+EURCAD=X	EUR/CAD	1.3696	-0.0074	-0.54%		
+EURSEK=X	EUR/SEK	10.3407	-0.0093	-0.09%		
+EURCHF=X	EUR/CHF	1.0218	-0.0010	-0.10%		
+EURHUF=X	EUR/HUF	372.1800	-1.8200	-0.49%		
+EURJPY=X	EUR/JPY	134.0400	-0.5000	-0.37%		
+CNY=X	USD/CNY	6.3658	-0.0012	-0.02%		
+HKD=X	USD/HKD	7.8281	+0.0045	+0.06%		
+SGD=X	USD/SGD	1.3575	+0.0002	+0.01%		
+INR=X	USD/INR	76.2500	-0.0500	-0.07%		
+MXN=X	USD/MXN	20.0200	-0.0500	-0.25%		
+PHP=X	USD/PHP	52.1000	-0.1500	-0.29%		
+IDR=X	USD/IDR	14,338.0000	-9.0000	-0.06%		
+THB=X	USD/THB	33.5800	+0.0600	+0.18%		
+MYR=X	USD/MYR	4.2080	-0.0160	-0.38%		
+ZAR=X	USD/ZAR	14.5450	+0.0374	+0.26%		
+RUB=X	USD/RUB	101.2500	+0.5000	+0.50%		
+"""
+
 
 
 #%%
-aa = df[['VWO','HYG','SPY']].dropna(how='any')
-aa =  aa/aa.iloc[0]
-aa.to_clipboard()
+ddd = [dd.split()[0] for dd in ddd.split('\n') if dd.__len__() >0]
+df = yf.download(ddd,period='max')
+df = df['Adj Close']
+df = df.fillna(method='ffill')
+dd = df.dropna()
+dd = dd/dd.iloc[0]
+dd.plot()
+
+#%%
+d2 = dd[dd.index>"2019-01-01"]
+d2= d2/d2.iloc[0]
+d3 = 1/d2['EURUSD=X GBPUSD=X AUDUSD=X NZDUSD=X '.split()]
+pd.concat([d3,d2['JPY=X']],axis=1).plot()
+
+d2["CNY=X HKD=X SGD=X INR=X MXN=X PHP=X IDR=X THB=X MYR=X ZAR=X RUB=X".split()].plot()
+
+
+#%%
+
+ddd = """
+^TYX	Treasury Yield 30 Years	2.6030	+0.0920	+3.66%		
+^TNX	Treasury Yield 10 Years	2.4920	+0.1510	+6.45%		
+^IRX	13 Week Treasury Bill	0.5200	+0.0370	+7.66%		
+^FVX	Treasury Yield 5 Years	2.5730	+0.2000	+8.43%		
+"""
+ddd = [dd.split()[0] for dd in ddd.split('\n') if dd.__len__() >0]
+df = yf.download(ddd,period='max')
+df = df['Adj Close']
+#%%
+
+from mpl_toolkits import mplot3d
+fig = plt.figure()
+# ax = plt.axes(projection='3d')
+
+ax = plt.axes(projection='3d')
+ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
+                cmap='viridis', edgecolor='none')
+ax.set_title('surface');
+
+
+#%%
+
+dd = dd/dd.iloc[0]
+dd = np.log(dd)
+dd.plot()
+dd.cov()
+dd.rolling(44).cov().unstack()['SPY'].plot()
+
+
+c = df.columns[0]
+cc=[]
+for c in df.columns:
+    dd = df[c].dropna()
+    print("{} : {} ~ {} ".format(dd.name,dd.index[0],dd.index[-1]))
+    cc.append([dd.name,dd.index[0],dd.index[-1]])
+
+    
+da = pd.DataFrame(cc)
+da.sort_values(1)
+
+#%%
+
+d1 = df.dropna()
+d2 = d1/d1.iloc[0]
+
+dd = d2.cov()['SPY']
+dd.to_clipboard()
+
+
+d3 = np.log(d2)
+dd = d3.cov()['SPY']
+dd.to_clipboard()
+aa = d3.rolling(22).cov().unstack()['SPY']
+
+
+#%%
+# aa = df[['VWO','HYG','SPY']].dropna(how='any')
+# aa =  aa/aa.iloc[0]
+# aa.to_clipboard()
 #%%
 
 
