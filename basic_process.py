@@ -23,8 +23,24 @@ import seaborn as sns
 import xlwings as xw
 
 import pyqtgraph as pg
-# df = pd.read_pickle('alldata.dat')['Adj Close']
-df = pd.read_csv('alldata.csv').set_index('Date')
+# df = pd.read_pickle('alldata.dat')['Adj Cldfose']
+df = pd.read_csv('alldata.csv')
+df.columns.str.contains('Adj')
+
+df.columns.isin(['Adj'])
+df
+
+df = df.transpose()
+df
+df = df[df.index.str.contains('Adj')]
+
+df.groupby(0)
+
+
+#%%
+.set_index('Date')
+
+
 d = ['VXX', 'VXZ']
 df = df.drop(columns=d)
 
